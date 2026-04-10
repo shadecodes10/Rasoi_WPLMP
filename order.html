@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order Online — Rasoi</title>
+<link rel="stylesheet" href="style.css">
+<style>
+.order-wrap { padding: 56px 48px 120px; max-width: 820px; margin: 0 auto; }
+.order-header { margin-bottom: 44px; }
+.order-header h1 { font-family: 'Cormorant Garamond', serif; font-size: 42px; font-weight: 400; color: var(--dark); }
+.order-header p { font-size: 16px; color: var(--muted); margin-top: 6px; }
+
+.order-cat-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px; font-style: italic; color: var(--spice);
+  margin: 40px 0 16px; padding-bottom: 10px;
+  border-bottom: 1px solid rgba(181,82,43,0.25);
+}
+.order-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 0; border-bottom: 1px solid var(--border);
+  gap: 16px;
+}
+.order-item-info { flex: 1; }
+.order-item-name { font-size: 17px; color: var(--text); margin-bottom: 3px; }
+.order-item-desc { font-size: 13px; color: var(--muted); font-style: italic; }
+.order-item-right { display: flex; align-items: center; gap: 20px; flex-shrink: 0; }
+.order-price { font-family: 'Cormorant Garamond', serif; font-size: 17px; color: var(--text); min-width: 48px; text-align: right; }
+
+/* QTY CONTROL */
+.qty-control { display: flex; align-items: center; gap: 0; }
+.qty-btn {
+  width: 32px; height: 32px; border: 1px solid var(--spice);
+  background: none; color: var(--spice); cursor: pointer;
+  font-size: 18px; line-height: 1; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'EB Garamond', serif;
+}
+.qty-btn:hover { background: var(--spice); color: #fff; }
+.qty-btn.minus-btn { visibility: hidden; }
+.qty-num {
+  width: 36px; text-align: center;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 17px; color: var(--text);
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  height: 32px; line-height: 30px;
+  background: var(--cream-dark);
+}
+
+/* STICKY CART BAR */
+.cart-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--dark); color: #fff;
+  padding: 0 48px; height: 68px;
+  display: none; align-items: center; justify-content: space-between;
+  z-index: 90; box-shadow: 0 -4px 24px rgba(0,0,0,0.25);
+  transform: translateY(100%); transition: transform 0.3s ease;
+}
+.cart-bar.visible { display: flex; transform: translateY(0); }
+.cart-info { font-size: 16px; line-height: 1; }
+.cart-info strong { font-family: 'Cormorant Garamond', serif; font-size: 20px; color: var(--gold); }
+.cart-info small { font-size: 13px; color: rgba(255,255,255,0.5); display: block; margin-top: 2px; }
+.cart-checkout-btn {
+  background: var(--spice); color: #fff; border: none;
+  padding: 13px 32px;
+  font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 0.2em;
+  text-transform: uppercase; cursor: pointer;
+  transition: background 0.2s; text-decoration: none;
+  display: inline-block;
+}
+.cart-checkout-btn:hover { background: #9e4422; }
+</style>
+</head>
+<body>
+<nav>
+  <a href="index.html" class="nav-logo">Rasoi</a>
+  <ul class="nav-links">
+    <li><a href="menu.html">Menu</a></li>
+    <li><a href="order.html" class="active">Order Online</a></li>
+    <li><a href="about.html">About</a></li>
+    <li><a href="locations.html">Locations</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="checkout.html" class="nav-cart-btn">Cart <span class="cart-badge" id="cart-badge" style="display:none">0</span></a>
+    <a href="signin.php" class="nav-auth">Sign-in / Sign-up</a>
+  </div>
+</nav>
+
+<div class="page-wrap">
+  <div class="page-content">
+    <div class="order-wrap">
+      <div class="order-header">
+        <p class="section-eyebrow" style="margin-bottom:10px">Delivery & Takeaway</p>
+        <h1>Rasoi, Delivered.</h1>
+        <p>Add dishes to your cart and we'll have them at your door.</p>
+      </div>
+
+      <!-- STARTERS -->
+      <div class="order-cat-title">Starters</div>
+      <div class="order-item" data-item="Paneer Kalimiri Tikka"><div class="order-item-info"><div class="order-item-name">Paneer Kalimiri Tikka</div><div class="order-item-desc">Black pepper marinated cottage cheese, tandoor-charred</div></div><div class="order-item-right"><div class="order-price">₹299</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Paneer Kalimiri Tikka')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Paneer Kalimiri Tikka',299)">+</button></div></div></div>
+      <div class="order-item" data-item="Cheese Stuffed Mushroom Tikka"><div class="order-item-info"><div class="order-item-name">Cheese Stuffed Mushroom Tikka</div><div class="order-item-desc">Tandoor-roasted mushroom with spiced cheese filling</div></div><div class="order-item-right"><div class="order-price">₹319</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Cheese Stuffed Mushroom Tikka')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Cheese Stuffed Mushroom Tikka',319)">+</button></div></div></div>
+      <div class="order-item" data-item="Soya Chaap"><div class="order-item-info"><div class="order-item-name">Soya Chaap</div><div class="order-item-desc">Slow-marinated soya chaap in smoky spices</div></div><div class="order-item-right"><div class="order-price">₹279</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Soya Chaap')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Soya Chaap',279)">+</button></div></div></div>
+      <div class="order-item" data-item="Bhatti Ke Aloo"><div class="order-item-info"><div class="order-item-name">Bhatti Ke Aloo</div><div class="order-item-desc">Whole potatoes slow-roasted in coal-fired oven</div></div><div class="order-item-right"><div class="order-price">₹219</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Bhatti Ke Aloo')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Bhatti Ke Aloo',219)">+</button></div></div></div>
+      <div class="order-item" data-item="Paneer Angara"><div class="order-item-info"><div class="order-item-name">Paneer Angara</div><div class="order-item-desc">Flame-kissed paneer cubes with smoked spices</div></div><div class="order-item-right"><div class="order-price">₹319</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Paneer Angara')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Paneer Angara',319)">+</button></div></div></div>
+      <div class="order-item" data-item="Rim Jhim Kebab"><div class="order-item-info"><div class="order-item-name">Rim Jhim Kebab</div><div class="order-item-desc">Soft lentil and herb kebabs with mint chutney</div></div><div class="order-item-right"><div class="order-price">₹259</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Rim Jhim Kebab')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Rim Jhim Kebab',259)">+</button></div></div></div>
+      <div class="order-item" data-item="Masalewale Mushroom"><div class="order-item-info"><div class="order-item-name">Masalewale Mushroom</div><div class="order-item-desc">Button mushrooms tossed in whole spices and butter</div></div><div class="order-item-right"><div class="order-price">₹269</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Masalewale Mushroom')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Masalewale Mushroom',269)">+</button></div></div></div>
+
+      <!-- MAIN COURSE -->
+      <div class="order-cat-title">Main Course</div>
+      <div class="order-item" data-item="Dal Makhani"><div class="order-item-info"><div class="order-item-name">Dal Makhani</div><div class="order-item-desc">Overnight slow-cooked black lentils in butter and cream</div></div><div class="order-item-right"><div class="order-price">₹349</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Dal Makhani')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Dal Makhani',349)">+</button></div></div></div>
+      <div class="order-item" data-item="Adraki Chole"><div class="order-item-info"><div class="order-item-name">Adraki Chole</div><div class="order-item-desc">Ginger-scented Punjabi chickpea curry</div></div><div class="order-item-right"><div class="order-price">₹329</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Adraki Chole')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Adraki Chole',329)">+</button></div></div></div>
+      <div class="order-item" data-item="Paneer Tikka Masala"><div class="order-item-info"><div class="order-item-name">Paneer Tikka Masala</div><div class="order-item-desc">Tandoor-charred paneer in smoky tomato masala</div></div><div class="order-item-right"><div class="order-price">₹389</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Paneer Tikka Masala')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Paneer Tikka Masala',389)">+</button></div></div></div>
+      <div class="order-item" data-item="Malai Kofta"><div class="order-item-info"><div class="order-item-name">Malai Kofta</div><div class="order-item-desc">Cream-soaked cottage cheese dumplings in mild gravy</div></div><div class="order-item-right"><div class="order-price">₹389</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Malai Kofta')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Malai Kofta',389)">+</button></div></div></div>
+      <div class="order-item" data-item="Palak Paneer"><div class="order-item-info"><div class="order-item-name">Palak Paneer</div><div class="order-item-desc">Cottage cheese in creamed spinach with whole spices</div></div><div class="order-item-right"><div class="order-price">₹369</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Palak Paneer')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Palak Paneer',369)">+</button></div></div></div>
+      <div class="order-item" data-item="Veg Kolhapuri"><div class="order-item-info"><div class="order-item-name">Veg Kolhapuri</div><div class="order-item-desc">Fiery Kolhapuri masala with farm vegetables</div></div><div class="order-item-right"><div class="order-price">₹349</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Veg Kolhapuri')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Veg Kolhapuri',349)">+</button></div></div></div>
+      <div class="order-item" data-item="Dum Aloo"><div class="order-item-info"><div class="order-item-name">Dum Aloo</div><div class="order-item-desc">Baby potatoes slow-cooked in Kashmiri gravy</div></div><div class="order-item-right"><div class="order-price">₹339</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Dum Aloo')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Dum Aloo',339)">+</button></div></div></div>
+      <div class="order-item" data-item="Dal Tadka"><div class="order-item-info"><div class="order-item-name">Dal Tadka</div><div class="order-item-desc">Yellow lentils tempered with garlic and dried red chilli</div></div><div class="order-item-right"><div class="order-price">₹279</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Dal Tadka')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Dal Tadka',279)">+</button></div></div></div>
+      <div class="order-item" data-item="Vegetable Dum Biryani"><div class="order-item-info"><div class="order-item-name">Vegetable Dum Biryani</div><div class="order-item-desc">Fragrant basmati with saffron, rose water, fried onion</div></div><div class="order-item-right"><div class="order-price">₹399</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Vegetable Dum Biryani')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Vegetable Dum Biryani',399)">+</button></div></div></div>
+      <div class="order-item" data-item="Paneer Biryani"><div class="order-item-info"><div class="order-item-name">Paneer Biryani</div><div class="order-item-desc">Charred paneer layered in aromatic long-grain rice</div></div><div class="order-item-right"><div class="order-price">₹429</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Paneer Biryani')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Paneer Biryani',429)">+</button></div></div></div>
+
+      <!-- BREADS -->
+      <div class="order-cat-title">Breads</div>
+      <div class="order-item" data-item="Butter Naan"><div class="order-item-info"><div class="order-item-name">Butter Naan</div><div class="order-item-desc">Classic leavened bread brushed with cultured butter</div></div><div class="order-item-right"><div class="order-price">₹79</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Butter Naan')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Butter Naan',79)">+</button></div></div></div>
+      <div class="order-item" data-item="Garlic Naan"><div class="order-item-info"><div class="order-item-name">Garlic Naan</div><div class="order-item-desc">Naan topped with fresh garlic and coriander</div></div><div class="order-item-right"><div class="order-price">₹89</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Garlic Naan')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Garlic Naan',89)">+</button></div></div></div>
+      <div class="order-item" data-item="Lacha Paratha"><div class="order-item-info"><div class="order-item-name">Lacha Paratha</div><div class="order-item-desc">Flaky layered whole wheat bread from the tandoor</div></div><div class="order-item-right"><div class="order-price">₹89</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Lacha Paratha')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Lacha Paratha',89)">+</button></div></div></div>
+      <div class="order-item" data-item="Tandoori Roti"><div class="order-item-info"><div class="order-item-name">Tandoori Roti</div><div class="order-item-desc">Whole wheat unleavened bread, charred perfectly</div></div><div class="order-item-right"><div class="order-price">₹59</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Tandoori Roti')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Tandoori Roti',59)">+</button></div></div></div>
+
+      <!-- DESSERT -->
+      <div class="order-cat-title">Dessert</div>
+      <div class="order-item" data-item="Gulab Jamun"><div class="order-item-info"><div class="order-item-name">Gulab Jamun</div><div class="order-item-desc">Soft milk-solid dumplings soaked in rose-cardamom syrup</div></div><div class="order-item-right"><div class="order-price">₹179</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Gulab Jamun')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Gulab Jamun',179)">+</button></div></div></div>
+      <div class="order-item" data-item="Gajar Ka Halwa"><div class="order-item-info"><div class="order-item-name">Gajar Ka Halwa</div><div class="order-item-desc">Slow-cooked carrot pudding with khoya and dry fruits</div></div><div class="order-item-right"><div class="order-price">₹189</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Gajar Ka Halwa')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Gajar Ka Halwa',189)">+</button></div></div></div>
+      <div class="order-item" data-item="Malai Kulfi"><div class="order-item-info"><div class="order-item-name">Malai Kulfi</div><div class="order-item-desc">Dense frozen milk with cardamom and pistachios</div></div><div class="order-item-right"><div class="order-price">₹159</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Malai Kulfi')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Malai Kulfi',159)">+</button></div></div></div>
+      <div class="order-item" data-item="Rasmalai"><div class="order-item-info"><div class="order-item-name">Rasmalai</div><div class="order-item-desc">Chilled cottage cheese patties in saffron-cardamom milk</div></div><div class="order-item-right"><div class="order-price">₹199</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Rasmalai')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Rasmalai',199)">+</button></div></div></div>
+
+      <!-- DRINKS -->
+      <div class="order-cat-title">Drinks</div>
+      <div class="order-item" data-item="Mango Lassi"><div class="order-item-info"><div class="order-item-name">Mango Lassi</div><div class="order-item-desc">Alphonso mango purée with creamy yogurt</div></div><div class="order-item-right"><div class="order-price">₹149</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Mango Lassi')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Mango Lassi',149)">+</button></div></div></div>
+      <div class="order-item" data-item="Aam Panna"><div class="order-item-info"><div class="order-item-name">Aam Panna</div><div class="order-item-desc">Raw mango, roasted cumin, black salt</div></div><div class="order-item-right"><div class="order-price">₹129</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Aam Panna')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Aam Panna',129)">+</button></div></div></div>
+      <div class="order-item" data-item="Thandai"><div class="order-item-info"><div class="order-item-name">Thandai</div><div class="order-item-desc">Milk blended with saffron, rose petals, and dry fruits</div></div><div class="order-item-right"><div class="order-price">₹159</div><div class="qty-control"><button class="qty-btn minus-btn" onclick="dec('Thandai')">−</button><div class="qty-num">0</div><button class="qty-btn plus-btn" onclick="inc('Thandai',159)">+</button></div></div></div>
+    </div>
+  </div>
+
+  <!-- STICKY CART BAR -->
+  <div class="cart-bar" id="cart-bar">
+    <div class="cart-info" id="cart-bar-info">
+      <strong>0 items</strong>
+      <small>₹0</small>
+    </div>
+    <a href="checkout.html" class="cart-checkout-btn">View Cart & Checkout →</a>
+  </div>
+
+  <footer>
+    <span class="footer-logo">Rasoi</span>
+    <span class="footer-copy">© 2026 Rasoi. All rights reserved.</span>
+    <a href="locations.html" class="footer-contact">Contact</a>
+  </footer>
+</div>
+
+<script src="cart.js"></script>
+<script src="auth.js"></script>
+<script>
+function inc(name, price) { addItem(name, price); }
+function dec(name) { removeItem(name); }
+
+// Override updateCartUI for order page to also update bar properly
+const _origUpdate = updateCartUI;
+window.updateCartUI = function() {
+  _origUpdate();
+  const count = getCartCount();
+  const total = getCartTotal();
+  const bar = document.getElementById('cart-bar');
+  const info = document.getElementById('cart-bar-info');
+  if (bar && info) {
+    if (count > 0) {
+      bar.classList.add('visible');
+      info.innerHTML = '<strong>' + count + ' item' + (count > 1 ? 's' : '') + '</strong><small>₹' + total + '</small>';
+    } else {
+      bar.classList.remove('visible');
+    }
+  }
+};
+document.addEventListener('DOMContentLoaded', updateCartUI);
+</script>
+</body>
+</html>
