@@ -16,23 +16,19 @@ $dbname     = "restaurant_db";
 $success_msg = "";
 $error_msg   = "";
 
-// Process form on submit
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $conn = new mysqli($servername, $username, $password, $dbname);
-
-    // Check connection
     if ($conn->connect_error) {
         $error_msg = "Connection failed: " . $conn->connect_error;
     } else {
 
         $uid   = $_SESSION['user_id'];
-        $bid   = (int)$_POST["location"];   // FIX: cast to int for bind_param "i"
+        $bid   = (int)$_POST["location"]; 
         $rdate = $_POST["rdate"];
         $rtime = $_POST["rtime"];
-        $count = (int)$_POST["guests"];     // FIX: cast to int — was causing count=1 bug
+        $count = (int)$_POST["guests"];    
 
-        // Prepared statement
         $stmt = $conn->prepare(
             "INSERT INTO reservation (uid, bid, rdate, rtime, count) VALUES (?, ?, ?, ?, ?)"
         );
@@ -135,21 +131,37 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             text-transform:uppercase; cursor:pointer;
         }
         .btn-submit:hover { background:var(--rust-dk); }
+        .nav-auth-user { display:flex; align-items:center; gap:14px; }
+        .nav-welcome { font-size:.85rem; color:var(--rust); letter-spacing:.03em; white-space:nowrap; }
+        .nav-signout {
+            background:none; border:1px solid var(--rust);
+            padding:5px 14px; font-size:.7rem; letter-spacing:.15em;
+            text-transform:uppercase; color:var(--rust);
+            cursor:pointer; transition:all 0.2s; text-decoration:none; white-space:nowrap;
+        }
+        .nav-signout:hover { background:var(--rust); color:#fff; }
     </style>
 </head>
 <body>
 
 <nav>
-    <a class="nav-logo" href="#">Rasoi</a>
+    <a class="nav-logo" href="index.php">Rasoi</a>
     <ul class="nav-links">
-        <li><a href="#">Menu</a></li>
-        <li><a href="#">Order Online</a></li>
-        <li><a href="#">About</a></li>
-        <li><a href="#">Locations</a></li>
+        <li><a href="menu.php">Menu</a></li>
+        <li><a href="order.php">Order Online</a></li>
+        <li><a href="about.php">About</a></li>
+        <li><a href="locations.php">Locations</a></li>
     </ul>
     <div class="nav-right">
-        <a class="nav-cart" href="#">Cart</a>
-        <a class="nav-auth" href="#">Sign-in / Sign-up</a>
+        <a class="nav-cart" href="order.php">Cart</a>
+        <?php if (isset($_SESSION['username'])): ?>
+            <div class="nav-auth-user">
+                <span class="nav-welcome">Welcome, <?= htmlspecialchars($_SESSION['username']) ?></span>
+                <a href="logout.php" class="nav-signout">Sign Out</a>
+            </div>
+        <?php else: ?>
+            <a class="nav-auth" href="signin.php">Sign-in / Sign-up</a>
+        <?php endif; ?>
     </div>
 </nav>
 
