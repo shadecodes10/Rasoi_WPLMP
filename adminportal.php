@@ -1,3 +1,15 @@
+<?php
+$conn = new mysqli("localhost", "root", "", "restaurant_db");
+$_dishes = [];
+$_users  = [];
+if (!$conn->connect_error) {
+    $dr = $conn->query("SELECT dname, dprice, dcategory, dtype FROM dishes ORDER BY dcategory, dname");
+    while ($d = $dr->fetch_assoc()) $_dishes[] = $d;
+    $ur = $conn->query("SELECT uid, firstname, lastname, email, phone_no FROM user ORDER BY firstname");
+    while ($u = $ur->fetch_assoc()) $_users[] = $u;
+    $conn->close();
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -600,16 +612,32 @@
 </div>
  
 <script>
-let dishes = [
-  { id:1, name:'Dal Makhani',   desc:'Slow-cooked lentils in rich tomato gravy',          category:'Main Course', price:320, type:'Veg',     status:'Available',   emoji:'🫕' },
-  { id:2, name:'Butter Chicken',desc:'Creamy tomato-based chicken curry',                  category:'Main Course', price:420, type:'Non-Veg', status:'Available',   emoji:'🍗' },
-  { id:3, name:'Paneer Tikka',  desc:'Chargrilled cottage cheese in spiced marinade',     category:'Appetizer',   price:280, type:'Veg',     status:'Available',   emoji:'🧀' },
-  { id:4, name:'Biryani',       desc:'Fragrant basmati rice with choice of protein',      category:'Rice',        price:360, type:'Non-Veg', status:'Available',   emoji:'🍚' },
-  { id:5, name:'Gulab Jamun',   desc:'Soft milk dumplings in rose syrup',                 category:'Dessert',     price:120, type:'Veg',     status:'Available',   emoji:'🍮' },
-  { id:6, name:'Garlic Naan',   desc:'Leavened bread with garlic butter',                 category:'Bread',       price:80,  type:'Veg',     status:'Unavailable', emoji:'🫓' },
-];
-let users = [];
-let nextUserId = 1, nextDishId = 7;
+const emojis = {'Main Course':'🫕','Starters':'🥙','Dessert':'🍮','Drinks':'🥤','Breads':'🫓','Rice':'🍚'};
+let dishes = <?php echo json_encode(array_map(function($d){
+    $emojis = ['Main Course'=>'🫕','Starters'=>'🥙','Dessert'=>'🍮','Drinks'=>'🥤','Breads'=>'🫓','Rice'=>'🍚'];
+    return [
+        'id'       => $d['dname'],
+        'name'     => $d['dname'],
+        'desc'     => $d['dtype'] . ' · ' . $d['dcategory'],
+        'category' => $d['dcategory'],
+        'price'    => (float)$d['dprice'],
+        'type'     => $d['dtype'],
+        'status'   => 'Available',
+        'emoji'    => $emojis[$d['dcategory']] ?? '🍽'
+    ];
+}, $_dishes)); ?>;
+let users = <?php echo json_encode(array_map(function($u){
+    return [
+        'id'     => (int)$u['uid'],
+        'fname'  => $u['firstname'],
+        'lname'  => $u['lastname'],
+        'email'  => $u['email'],
+        'phone'  => $u['phone_no'] ?? '—',
+        'joined' => '—',
+        'status' => 'Active'
+    ];
+}, $_users)); ?>;
+let nextUserId = <?php echo count($_users) + 1; ?>, nextDishId = <?php echo count($_dishes) + 1; ?>;
  
 // ── LOGIN ──
 function doLogin() {
