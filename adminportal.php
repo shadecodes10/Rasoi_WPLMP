@@ -1,0 +1,786 @@
+<?php
+$conn = new mysqli("localhost", "root", "", "restaurant_db");
+$_dishes = [];
+$_users  = [];
+if (!$conn->connect_error) {
+    $dr = $conn->query("SELECT dname, dprice, dcategory, dtype FROM dishes ORDER BY dcategory, dname");
+    while ($d = $dr->fetch_assoc()) $_dishes[] = $d;
+    $ur = $conn->query("SELECT uid, firstname, lastname, email, phone_no FROM user ORDER BY firstname");
+    while ($u = $ur->fetch_assoc()) $_users[] = $u;
+    $conn->close();
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rasoi — Admin Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #f5f0e8;
+    --parchment: #ede6d6;
+    --brown-dark: #2c1a0e;
+    --brown-mid: #6b3a1f;
+    --brown-warm: #8b4a2a;
+    --brown-light: #c4895a;
+    --gold: #c9a84c;
+    --gold-light: #e8d5a3;
+    --text-dark: #1e0f06;
+    --text-mid: #5a3520;
+    --text-light: #9a7a65;
+    --border: rgba(107,58,31,0.18);
+    --shadow: 0 8px 40px rgba(44,26,14,0.13);
+  }
+ 
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+ 
+  body {
+    font-family: 'Jost', sans-serif;
+    background: var(--cream);
+    color: var(--text-dark);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+ 
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0;
+  }
+ 
+  /* ══════════════ SCREENS ══════════════ */
+  .screen { display: none; flex-direction: column; min-height: 100vh; position: relative; z-index: 1; }
+  .screen.active { display: flex; }
+ 
+  /* ══════════════ TOPBAR ══════════════ */
+  .topbar {
+    background: var(--brown-dark);
+    padding: 0 40px;
+    height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(201,168,76,0.3);
+  }
+  .topbar-brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 22px; font-weight: 400; letter-spacing: 3px;
+    color: var(--gold); text-transform: uppercase;
+  }
+  .topbar-right { display: flex; align-items: center; gap: 24px; }
+  .topbar-user {
+    font-size: 12px; letter-spacing: 1px; color: var(--gold-light); font-weight: 300;
+  }
+  .topbar-logout {
+    font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--text-light); cursor: pointer; background: none; border: none;
+    font-family: 'Jost', sans-serif; transition: color .2s;
+  }
+  .topbar-logout:hover { color: var(--gold); }
+ 
+  /* ══════════════ SIDEBAR ══════════════ */
+  .layout { display: flex; flex: 1; }
+  .sidebar {
+    width: 240px; min-height: 100%;
+    background: var(--brown-dark);
+    border-right: 1px solid rgba(201,168,76,0.15);
+    padding: 32px 0;
+    display: flex; flex-direction: column;
+  }
+  .sidebar-label {
+    font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase;
+    color: var(--text-light); padding: 0 28px 12px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 28px; cursor: pointer;
+    color: rgba(237,214,163,0.55);
+    font-size: 13px; letter-spacing: 1px; font-weight: 400;
+    transition: all .2s; border-left: 2px solid transparent;
+    user-select: none;
+  }
+  .nav-item:hover { color: var(--gold-light); background: rgba(201,168,76,0.07); }
+  .nav-item.active {
+    color: var(--gold); border-left-color: var(--gold);
+    background: rgba(201,168,76,0.1);
+  }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+ 
+  /* ══════════════ MAIN CONTENT ══════════════ */
+  .main { flex: 1; padding: 40px 48px; background: var(--cream); overflow-y: auto; }
+  .page-header { margin-bottom: 36px; }
+  .page-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 36px; font-weight: 300; color: var(--brown-dark);
+    letter-spacing: 1px; line-height: 1;
+  }
+  .page-subtitle { font-size: 12px; color: var(--text-light); letter-spacing: 1px; margin-top: 6px; }
+ 
+  /* ══════════════ STATS CARDS ══════════════ */
+  .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; margin-bottom: 40px; }
+  .stat-card {
+    background: #fff; border-radius: 4px;
+    border: 1px solid var(--border);
+    padding: 24px 26px;
+    box-shadow: 0 2px 16px rgba(44,26,14,0.06);
+    position: relative; overflow: hidden;
+  }
+  .stat-card::after {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--brown-warm), var(--gold));
+  }
+  .stat-num {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 40px; font-weight: 300; color: var(--brown-dark); line-height: 1;
+  }
+  .stat-lbl { font-size: 11px; letter-spacing: 1.5px; color: var(--text-light); margin-top: 6px; }
+ 
+  /* ══════════════ TABLE ══════════════ */
+  .section-card {
+    background: #fff; border-radius: 4px;
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 16px rgba(44,26,14,0.06);
+    overflow: hidden;
+  }
+  .section-head {
+    padding: 20px 28px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: #fffdf9;
+  }
+  .section-head-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 18px; font-weight: 400; color: var(--brown-dark); letter-spacing: 0.5px;
+  }
+  .btn {
+    padding: 9px 22px; border-radius: 3px; border: none; cursor: pointer;
+    font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 1.5px;
+    text-transform: uppercase; font-weight: 500; transition: all .2s;
+  }
+  .btn-primary { background: var(--brown-warm); color: #fff; }
+  .btn-primary:hover { background: var(--brown-mid); }
+  .btn-sm { padding: 6px 14px; font-size: 10px; }
+  .btn-ghost { background: transparent; color: var(--brown-warm); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--parchment); }
+  .btn-danger { background: transparent; color: #b94040; border: 1px solid rgba(185,64,64,0.3); }
+  .btn-danger:hover { background: rgba(185,64,64,0.06); }
+ 
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text-light); font-weight: 500;
+    padding: 14px 28px; text-align: left;
+    border-bottom: 1px solid var(--border); background: #fffdf9;
+  }
+  td {
+    padding: 16px 28px; font-size: 13px; color: var(--text-dark);
+    border-bottom: 1px solid rgba(107,58,31,0.07);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(245,240,232,0.6); }
+ 
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 20px;
+    font-size: 10px; letter-spacing: 1px; font-weight: 500;
+  }
+  .badge-active { background: rgba(76,140,80,0.12); color: #3a7a3e; }
+  .badge-inactive { background: rgba(150,100,50,0.12); color: var(--brown-mid); }
+  .badge-veg { background: rgba(76,140,80,0.12); color: #3a7a3e; }
+  .badge-nonveg { background: rgba(185,64,64,0.1); color: #b94040; }
+ 
+  .dish-img {
+    width: 44px; height: 44px; border-radius: 3px; object-fit: cover;
+    background: var(--parchment); display: flex; align-items: center; justify-content: center;
+    font-size: 20px; border: 1px solid var(--border);
+  }
+  .dish-name { font-weight: 500; color: var(--brown-dark); }
+  .dish-desc { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+ 
+  .actions { display: flex; gap: 8px; }
+ 
+  /* Search bar */
+  .search-wrap { position: relative; }
+  .search-input {
+    padding: 9px 16px 9px 36px; border-radius: 3px;
+    border: 1px solid var(--border); background: var(--cream);
+    font-family: 'Jost', sans-serif; font-size: 12px; color: var(--text-dark);
+    width: 220px; outline: none; transition: border .2s;
+  }
+  .search-input:focus { border-color: var(--brown-light); }
+  .search-icon {
+    position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    color: var(--text-light); font-size: 13px; pointer-events: none;
+  }
+ 
+  /* ══════════════ LOGIN PAGE ══════════════ */
+  #login-screen {
+    background: var(--parchment);
+    align-items: center; justify-content: center;
+  }
+  .login-wrap {
+    width: 420px;
+    animation: fadeUp .5s ease both;
+  }
+  .login-logo {
+    text-align: center; margin-bottom: 40px;
+  }
+  .login-logo-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 52px; font-weight: 300; color: var(--brown-warm);
+    letter-spacing: 5px; line-height: 1;
+  }
+  .login-logo-sub {
+    font-size: 10px; letter-spacing: 4px; text-transform: uppercase;
+    color: var(--text-light); margin-top: 8px;
+  }
+  .login-divider {
+    display: flex; align-items: center; gap: 12px; margin: 0 auto 36px;
+    width: 200px;
+  }
+  .login-divider::before, .login-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+  .login-divider span { font-size: 10px; letter-spacing: 2px; color: var(--text-light); }
+ 
+  .login-card {
+    background: #fff; border-radius: 6px; padding: 40px;
+    box-shadow: 0 20px 60px rgba(44,26,14,0.1);
+    border: 1px solid var(--border);
+  }
+  .field { margin-bottom: 22px; }
+  .field label {
+    display: block; font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text-light); margin-bottom: 8px; font-weight: 500;
+  }
+  .field-wrap { position: relative; }
+  .field-icon {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    color: var(--brown-light); font-size: 14px;
+  }
+  .field input {
+    width: 100%; padding: 13px 14px 13px 40px;
+    border: 1px solid var(--border); border-radius: 4px;
+    background: var(--cream); font-family: 'Jost', sans-serif;
+    font-size: 13px; color: var(--text-dark); outline: none; transition: all .2s;
+  }
+  .field input:focus { border-color: var(--brown-light); background: #fff; }
+  .field input::placeholder { color: #c4b09a; }
+ 
+  .login-btn {
+    width: 100%; padding: 14px; background: var(--brown-warm);
+    border: none; border-radius: 4px; color: #fff; cursor: pointer;
+    font-family: 'Jost', sans-serif; font-size: 11px; letter-spacing: 2.5px;
+    text-transform: uppercase; font-weight: 500; transition: all .2s;
+    margin-top: 6px;
+  }
+  .login-btn:hover { background: var(--brown-mid); }
+  .login-error {
+    color: #b94040; font-size: 11px; text-align: center;
+    margin-top: 14px; min-height: 16px; letter-spacing: 0.5px;
+  }
+ 
+  .login-footer {
+    text-align: center; margin-top: 28px;
+    font-size: 10px; letter-spacing: 1px; color: var(--text-light);
+  }
+ 
+  /* ══════════════ FOOTER ══════════════ */
+  footer {
+    background: var(--brown-dark); padding: 14px 40px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid rgba(201,168,76,0.2);
+    z-index: 1;
+  }
+  .footer-brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 16px; color: var(--gold); letter-spacing: 2px;
+  }
+  .footer-copy { font-size: 11px; color: var(--text-light); letter-spacing: 0.5px; }
+ 
+  /* ══════════════ MODAL ══════════════ */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(28,14,6,0.5); z-index: 100;
+    align-items: center; justify-content: center; backdrop-filter: blur(3px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 6px; padding: 36px;
+    width: 460px; box-shadow: 0 30px 80px rgba(44,26,14,0.2);
+    animation: fadeUp .25s ease;
+  }
+  .modal-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 24px; color: var(--brown-dark); margin-bottom: 24px;
+  }
+  .modal-field { margin-bottom: 18px; }
+  .modal-field label {
+    display: block; font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+    color: var(--text-light); margin-bottom: 7px;
+  }
+  .modal-field input, .modal-field select {
+    width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: 4px;
+    background: var(--cream); font-family: 'Jost', sans-serif; font-size: 13px;
+    color: var(--text-dark); outline: none;
+  }
+  .modal-field input:focus, .modal-field select:focus { border-color: var(--brown-light); }
+  .modal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 28px; }
+ 
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+ 
+  /* ══════════════ RESPONSIVE ══════════════ */
+  @media (max-width: 900px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .sidebar { width: 60px; }
+    .nav-item span { display: none; }
+    .sidebar-label { display: none; }
+  }
+</style>
+</head>
+<body>
+ 
+<!-- ════════════════ LOGIN SCREEN ════════════════ -->
+<div id="login-screen" class="screen active">
+  <div class="login-wrap">
+    <div class="login-logo">
+      <div class="login-logo-title">Rasoi</div>
+      <div class="login-logo-sub">Admin Portal</div>
+    </div>
+    <div class="login-divider"><span>sign in</span></div>
+    <div class="login-card">
+      <div class="field">
+        <label>Email Address</label>
+        <div class="field-wrap">
+          <span class="field-icon">✉</span>
+          <input type="email" id="login-email" placeholder="you@rasoi.com">
+        </div>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <div class="field-wrap">
+          <span class="field-icon">🔒</span>
+          <input type="password" id="login-pass" placeholder="your password" onkeydown="if(event.key==='Enter') doLogin()">
+        </div>
+      </div>
+      <button class="login-btn" onclick="doLogin()">Sign In to Portal</button>
+      <div class="login-error" id="login-error"></div>
+    </div>
+    <div class="login-footer">Use admin@rasoi.com / admin123 to sign in</div>
+  </div>
+  <footer style="position:fixed;bottom:0;width:100%">
+    <div class="footer-brand">Rasoi</div>
+    <div class="footer-copy">© 2026 Rasoi. All rights reserved.</div>
+  </footer>
+</div>
+ 
+<!-- ════════════════ DASHBOARD SCREEN ════════════════ -->
+<div id="dashboard-screen" class="screen">
+  <div class="topbar">
+    <div class="topbar-brand">Rasoi</div>
+    <div class="topbar-right">
+      <div class="topbar-user">Admin · admin@rasoi.com</div>
+      <button class="topbar-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+ 
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sidebar-label">Navigation</div>
+      <div class="nav-item active" id="nav-users" onclick="showPage('users')">
+        <span class="nav-icon">👥</span>
+        <span>Manage Users</span>
+      </div>
+      <div class="nav-item" id="nav-dishes" onclick="showPage('dishes')">
+        <span class="nav-icon">🍽</span>
+        <span>Manage Dishes</span>
+      </div>
+    </div>
+ 
+    <div class="main">
+ 
+      <!-- ── USERS PAGE ── -->
+      <div id="page-users">
+        <div class="page-header">
+          <div class="page-title">Manage Users</div>
+          <div class="page-subtitle">View and manage customer accounts</div>
+        </div>
+ 
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-num">142</div>
+            <div class="stat-lbl">Total Users</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">118</div>
+            <div class="stat-lbl">Active Users</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">24</div>
+            <div class="stat-lbl">New This Month</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">8</div>
+            <div class="stat-lbl">Pending Review</div>
+          </div>
+        </div>
+ 
+        <div class="section-card">
+          <div class="section-head">
+            <div class="section-head-title">All Users</div>
+            <div style="display:flex;gap:12px;align-items:center">
+              <div class="search-wrap">
+                <span class="search-icon">🔍</span>
+                <input class="search-input" placeholder="Search users…" oninput="filterUsers(this.value)">
+              </div>
+              <button class="btn btn-primary" onclick="openUserModal()">+ Add User</button>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Joined</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+ 
+      <!-- ── DISHES PAGE ── -->
+      <div id="page-dishes" style="display:none">
+        <div class="page-header">
+          <div class="page-title">Manage Dishes</div>
+          <div class="page-subtitle">Curate your restaurant menu</div>
+        </div>
+ 
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-num">38</div>
+            <div class="stat-lbl">Total Dishes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">32</div>
+            <div class="stat-lbl">Available</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">18</div>
+            <div class="stat-lbl">Vegetarian</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num">20</div>
+            <div class="stat-lbl">Non-Veg</div>
+          </div>
+        </div>
+ 
+        <div class="section-card">
+          <div class="section-head">
+            <div class="section-head-title">Menu</div>
+            <div style="display:flex;gap:12px;align-items:center">
+              <div class="search-wrap">
+                <span class="search-icon">🔍</span>
+                <input class="search-input" placeholder="Search dishes…" oninput="filterDishes(this.value)">
+              </div>
+              <button class="btn btn-primary" onclick="openDishModal()">+ Add Dish</button>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Dish</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="dishes-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+ 
+    </div>
+  </div>
+ 
+  <footer>
+    <div class="footer-brand">Rasoi</div>
+    <div class="footer-copy">© 2026 Rasoi. All rights reserved.</div>
+  </footer>
+</div>
+ 
+<!-- ════════════════ USER MODAL ════════════════ -->
+<div class="modal-overlay" id="user-modal">
+  <div class="modal">
+    <div class="modal-title">Add New User</div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>First Name</label>
+        <input type="text" id="u-fname" placeholder="Priya">
+      </div>
+      <div class="modal-field">
+        <label>Last Name</label>
+        <input type="text" id="u-lname" placeholder="Sharma">
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>Email</label>
+      <input type="email" id="u-email" placeholder="priya@example.com">
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Phone</label>
+        <input type="text" id="u-phone" placeholder="+91 98xxx xxxxx">
+      </div>
+      <div class="modal-field">
+        <label>Status</label>
+        <select id="u-status">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('user-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUser()">Save User</button>
+    </div>
+  </div>
+</div>
+ 
+<!-- ════════════════ DISH MODAL ════════════════ -->
+<div class="modal-overlay" id="dish-modal">
+  <div class="modal">
+    <div class="modal-title">Add New Dish</div>
+    <div class="modal-field">
+      <label>Dish Name</label>
+      <input type="text" id="d-name" placeholder="Dal Makhani">
+    </div>
+    <div class="modal-field">
+      <label>Description</label>
+      <input type="text" id="d-desc" placeholder="Slow-cooked lentils in a rich tomato gravy">
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Category</label>
+        <select id="d-category">
+          <option>Main Course</option>
+          <option>Appetizer</option>
+          <option>Dessert</option>
+          <option>Beverage</option>
+          <option>Bread</option>
+          <option>Rice</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Price (₹)</label>
+        <input type="number" id="d-price" placeholder="320">
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-field">
+        <label>Type</label>
+        <select id="d-type">
+          <option value="Veg">Vegetarian</option>
+          <option value="Non-Veg">Non-Vegetarian</option>
+        </select>
+      </div>
+      <div class="modal-field">
+        <label>Status</label>
+        <select id="d-status">
+          <option value="Available">Available</option>
+          <option value="Unavailable">Unavailable</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('dish-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDish()">Save Dish</button>
+    </div>
+  </div>
+</div>
+ 
+<script>
+const emojis = {'Main Course':'🫕','Starters':'🥙','Dessert':'🍮','Drinks':'🥤','Breads':'🫓','Rice':'🍚'};
+let dishes = <?php echo json_encode(array_map(function($d){
+    $emojis = ['Main Course'=>'🫕','Starters'=>'🥙','Dessert'=>'🍮','Drinks'=>'🥤','Breads'=>'🫓','Rice'=>'🍚'];
+    return [
+        'id'       => $d['dname'],
+        'name'     => $d['dname'],
+        'desc'     => $d['dtype'] . ' · ' . $d['dcategory'],
+        'category' => $d['dcategory'],
+        'price'    => (float)$d['dprice'],
+        'type'     => $d['dtype'],
+        'status'   => 'Available',
+        'emoji'    => $emojis[$d['dcategory']] ?? '🍽'
+    ];
+}, $_dishes)); ?>;
+let users = <?php echo json_encode(array_map(function($u){
+    return [
+        'id'     => (int)$u['uid'],
+        'fname'  => $u['firstname'],
+        'lname'  => $u['lastname'],
+        'email'  => $u['email'],
+        'phone'  => $u['phone_no'] ?? '—',
+        'joined' => '—',
+        'status' => 'Active'
+    ];
+}, $_users)); ?>;
+let nextUserId = <?php echo count($_users) + 1; ?>, nextDishId = <?php echo count($_dishes) + 1; ?>;
+ 
+// ── LOGIN ──
+function doLogin() {
+  const e = document.getElementById('login-email').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-error');
+  if (e === 'admin@rasoi.com' && p === 'admin123') {
+    err.textContent = '';
+    document.getElementById('login-screen').classList.remove('active');
+    document.getElementById('dashboard-screen').classList.add('active');
+    renderUsers(); renderDishes();
+  } else {
+    err.textContent = 'Invalid email or password. Please try again.';
+  }
+}
+ 
+function doLogout() {
+  document.getElementById('dashboard-screen').classList.remove('active');
+  document.getElementById('login-screen').classList.add('active');
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-pass').value = '';
+}
+ 
+// ── NAVIGATION ──
+function showPage(page) {
+  document.getElementById('page-users').style.display = page==='users' ? 'block' : 'none';
+  document.getElementById('page-dishes').style.display = page==='dishes' ? 'block' : 'none';
+  document.getElementById('nav-users').classList.toggle('active', page==='users');
+  document.getElementById('nav-dishes').classList.toggle('active', page==='dishes');
+}
+ 
+// ── RENDER USERS ──
+function renderUsers(list) {
+  const tb = document.getElementById('users-tbody');
+  const data = list || users;
+  tb.innerHTML = data.map(u => `
+    <tr>
+      <td><strong>${u.fname} ${u.lname}</strong></td>
+      <td style="color:var(--text-mid)">${u.email}</td>
+      <td style="color:var(--text-light)">${u.phone}</td>
+      <td style="color:var(--text-light)">${u.joined}</td>
+      <td><span class="badge ${u.status==='Active'?'badge-active':'badge-inactive'}">${u.status}</span></td>
+      <td><div class="actions">
+        <button class="btn btn-sm btn-ghost" onclick="toggleUserStatus(${u.id})">${u.status==='Active'?'Deactivate':'Activate'}</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id})">Remove</button>
+      </div></td>
+    </tr>
+  `).join('');
+}
+ 
+function filterUsers(q) {
+  renderUsers(users.filter(u =>
+    (u.fname+' '+u.lname+u.email).toLowerCase().includes(q.toLowerCase())
+  ));
+}
+ 
+function toggleUserStatus(id) {
+  const u = users.find(x=>x.id===id);
+  if(u) u.status = u.status==='Active'?'Inactive':'Active';
+  renderUsers();
+}
+ 
+function deleteUser(id) {
+  if(confirm('Remove this user?')) { users = users.filter(x=>x.id!==id); renderUsers(); }
+}
+ 
+function openUserModal() { document.getElementById('user-modal').classList.add('open'); }
+function saveUser() {
+  const fn = document.getElementById('u-fname').value.trim();
+  const ln = document.getElementById('u-lname').value.trim();
+  const em = document.getElementById('u-email').value.trim();
+  const ph = document.getElementById('u-phone').value.trim();
+  const st = document.getElementById('u-status').value;
+  if(!fn||!em) return alert('Name and email are required.');
+  const now = new Date();
+  users.push({ id:nextUserId++, fname:fn, lname:ln, email:em, phone:ph||'—',
+    joined: `${now.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][now.getMonth()]} ${now.getFullYear()}`, status:st });
+  ['u-fname','u-lname','u-email','u-phone'].forEach(id=>document.getElementById(id).value='');
+  closeModal('user-modal'); renderUsers();
+}
+ 
+// ── RENDER DISHES ──
+function renderDishes(list) {
+  const tb = document.getElementById('dishes-tbody');
+  const data = list || dishes;
+  tb.innerHTML = data.map(d => `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:14px">
+          <div class="dish-img">${d.emoji||'🍽'}</div>
+          <div>
+            <div class="dish-name">${d.name}</div>
+            <div class="dish-desc">${d.desc}</div>
+          </div>
+        </div>
+      </td>
+      <td style="color:var(--text-mid)">${d.category}</td>
+      <td style="font-weight:500;color:var(--brown-dark)">₹${d.price}</td>
+      <td><span class="badge ${d.type==='Veg'?'badge-veg':'badge-nonveg'}">${d.type}</span></td>
+      <td><span class="badge ${d.status==='Available'?'badge-active':'badge-inactive'}">${d.status}</span></td>
+      <td><div class="actions">
+        <button class="btn btn-sm btn-ghost" onclick="toggleDishStatus(${d.id})">${d.status==='Available'?'Disable':'Enable'}</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteDish(${d.id})">Remove</button>
+      </div></td>
+    </tr>
+  `).join('');
+}
+ 
+function filterDishes(q) {
+  renderDishes(dishes.filter(d => (d.name+d.category).toLowerCase().includes(q.toLowerCase())));
+}
+ 
+function toggleDishStatus(id) {
+  const d = dishes.find(x=>x.id===id);
+  if(d) d.status = d.status==='Available'?'Unavailable':'Available';
+  renderDishes();
+}
+ 
+function deleteDish(id) {
+  if(confirm('Remove this dish from the menu?')) { dishes = dishes.filter(x=>x.id!==id); renderDishes(); }
+}
+ 
+function openDishModal() { document.getElementById('dish-modal').classList.add('open'); }
+function saveDish() {
+  const nm = document.getElementById('d-name').value.trim();
+  const ds = document.getElementById('d-desc').value.trim();
+  const ca = document.getElementById('d-category').value;
+  const pr = parseFloat(document.getElementById('d-price').value);
+  const ty = document.getElementById('d-type').value;
+  const st = document.getElementById('d-status').value;
+  if(!nm||!pr) return alert('Name and price are required.');
+  const emojis = { 'Main Course':'🫕','Appetizer':'🥙','Dessert':'🍮','Beverage':'🥤','Bread':'🫓','Rice':'🍚' };
+  dishes.push({ id:nextDishId++, name:nm, desc:ds||'', category:ca, price:pr, type:ty, status:st, emoji:emojis[ca]||'🍽' });
+  ['d-name','d-desc','d-price'].forEach(id=>document.getElementById(id).value='');
+  closeModal('dish-modal'); renderDishes();
+}
+ 
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+ 
+// Close on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if(e.target===el) el.classList.remove('open'); });
+});
+</script>
+</body>
+</html>

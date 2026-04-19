@@ -49,6 +49,24 @@ if ($page === 'dishes' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             $conn->query("UPDATE dishes SET dprice=$price WHERE dname='$dname'");
         }
     }
+    if ($dish_action === 'add_dish') {
+        $new_name     = $conn->real_escape_string(trim($_POST['new_dname']     ?? ''));
+        $new_price    = (float)($_POST['new_dprice']    ?? 0);
+        $raw_cat      = trim($_POST['new_dcategory'] ?? '');
+        // If user picked "+ Add new category" use the typed custom value instead
+        if ($raw_cat === '__new__') $raw_cat = trim($_POST['new_dcategory_custom'] ?? '');
+        $new_category = $conn->real_escape_string($raw_cat);
+        $new_type     = $conn->real_escape_string(trim($_POST['new_dtype']     ?? ''));
+        if ($new_name && $new_price > 0 && $new_category) {
+            $conn->query("INSERT INTO dishes (dname, dprice, dcategory, dtype) VALUES ('$new_name', $new_price, '$new_category', '$new_type')");
+        }
+    }
+    if ($dish_action === 'delete_dish') {
+        $del_name = $conn->real_escape_string($_POST['del_dname'] ?? '');
+        if ($del_name) {
+            $conn->query("DELETE FROM dishes WHERE dname='$del_name'");
+        }
+    }
     header("Location: portal2.php?page=dishes");
     exit;
 }
@@ -70,6 +88,11 @@ if (isset($_GET['toggle_id'])) {
 $bookings_tab = $_GET['tab'] ?? 'reservations';
 $edit_id      = (int)($_GET['edit_id']   ?? 0);
 $edit_type    = $_GET['edit_type'] ?? '';
+
+// Distinct dish categories for dropdown
+$cat_res = $conn->query("SELECT DISTINCT dcategory FROM dishes ORDER BY dcategory");
+$dish_categories = [];
+if ($cat_res) while ($cr = $cat_res->fetch_row()) $dish_categories[] = $cr[0];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -165,6 +188,17 @@ $edit_type    = $_GET['edit_type'] ?? '';
     .price-edit-form button:hover { background: var(--rust-light); }
     .price-display { cursor: pointer; border-bottom: 1px dashed var(--text-muted); font-weight: 500; color: var(--rust); }
     .price-display:hover { border-bottom-color: var(--rust); }
+
+    /* Add dish form */
+    .add-dish-box { background: var(--table-bg); border: 1px solid var(--border); border-radius: 4px; padding: 24px 28px; margin-bottom: 28px; box-shadow: 0 2px 12px rgba(44,31,20,0.05); }
+    .add-dish-title { font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; font-weight: 600; color: var(--rust); margin-bottom: 16px; }
+    .add-dish-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px 16px; }
+    .add-dish-grid label { display: block; font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+    .add-dish-grid input, .add-dish-grid select { width: 100%; padding: 7px 10px; font-family: 'Jost', sans-serif; font-size: 0.85rem; border: 1px solid var(--border); border-radius: 2px; background: #fff; color: var(--text-main); }
+
+    /* Feedbacks */
+    .feedback-summary { background: #fff9f3; border-left: 3px solid var(--rust); padding: 12px 18px; border-radius: 2px; margin-bottom: 20px; font-size: 0.9rem; color: var(--text-main); }
+    .star-rating { color: #c87941; font-size: 1rem; letter-spacing: 2px; }
   </style>
 </head>
 <body>
@@ -187,7 +221,7 @@ $edit_type    = $_GET['edit_type'] ?? '';
       <div class="admin-card">
         <span class="card-icon">&#127373;</span>
         <span class="card-label">Dishes</span>
-        <a href="?page=dishes" class="card-btn">View All Dishes</a>
+        <a href="?page=dishes" class="card-btn">Manage Dishes</a>
       </div>
       <div class="admin-card">
         <span class="card-icon">&#128203;</span>
@@ -198,6 +232,11 @@ $edit_type    = $_GET['edit_type'] ?? '';
         <span class="card-icon">&#128200;</span>
         <span class="card-label">Revenue</span>
         <a href="?page=revenue" class="card-btn">View Analytics</a>
+      </div>
+      <div class="admin-card">
+        <span class="card-icon">&#11088;</span>
+        <span class="card-label">Feedbacks</span>
+        <a href="?page=feedbacks" class="card-btn">View Feedbacks</a>
       </div>
     </div>
   <?php endif; ?>
@@ -234,12 +273,51 @@ $edit_type    = $_GET['edit_type'] ?? '';
 
   <?php if ($page === 'dishes'): ?>
     <a href="portal2.php" class="back-link">&larr; Back</a>
-    <h2 class="section-title">Dishes</h2>
+    <h2 class="section-title">Manage Dishes</h2>
     <div class="section-divider"></div>
+
+    <!-- Add New Dish Form -->
+    <div class="add-dish-box">
+      <div class="add-dish-title">&#43; Add New Dish</div>
+      <form method="POST" action="?page=dishes" class="add-dish-form">
+        <input type="hidden" name="dish_action" value="add_dish">
+        <div class="add-dish-grid">
+          <div>
+            <label>Dish Name *</label>
+            <input type="text" name="new_dname" placeholder="e.g. Butter Chicken" required>
+          </div>
+          <div>
+            <label>Price (&#8377;) *</label>
+            <input type="number" name="new_dprice" placeholder="e.g. 349" min="1" step="1" required>
+          </div>
+          <div>
+            <label>Category *</label>
+            <select name="new_dcategory" id="cat_select" onchange="toggleNewCat(this)" required>
+              <option value="" disabled selected>— select category —</option>
+              <?php foreach($dish_categories as $dc): ?>
+              <option value="<?= htmlspecialchars($dc, ENT_QUOTES) ?>"><?= htmlspecialchars($dc) ?></option>
+              <?php endforeach; ?>
+              <option value="__new__">＋ Add new category…</option>
+            </select>
+            <input type="text" id="cat_custom" name="new_dcategory_custom"
+                   placeholder="Type new category name" style="display:none;margin-top:6px;width:100%;padding:7px 10px;font-family:'Jost',sans-serif;font-size:0.85rem;border:1px solid var(--border);border-radius:2px;">
+          </div>
+          <div>
+            <label>Type</label>
+            <select name="new_dtype">
+              <option value="Veg" selected>Veg</option>
+              <option value="Jain">Jain</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn-save" style="margin-top:10px;">Add Dish</button>
+      </form>
+    </div>
+
     <table>
       <thead>
         <tr>
-          <th>Name</th><th>Price</th><th>Category</th><th>Type</th>
+          <th>Name</th><th>Price</th><th>Category</th><th>Type</th><th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -258,11 +336,18 @@ $edit_type    = $_GET['edit_type'] ?? '';
                 </form>
               </td>
               <td>" . htmlspecialchars($row['dcategory']) . "</td>
-              <td>" . htmlspecialchars($row['dtype']) . "</td>
+              <td>" . htmlspecialchars($row['dtype'] ?? '—') . "</td>
+              <td>
+                <form method='POST' action='?page=dishes' onsubmit=\"return confirm('Delete &quot;" . htmlspecialchars($row['dname'], ENT_QUOTES) . "&quot;?')\" style='display:inline'>
+                  <input type='hidden' name='dish_action' value='delete_dish'>
+                  <input type='hidden' name='del_dname' value='" . htmlspecialchars($row['dname'], ENT_QUOTES) . "'>
+                  <button type='submit' class='act-btn act-delete'>Delete</button>
+                </form>
+              </td>
             </tr>";
           }
         } else {
-          echo "<tr class='empty-row'><td colspan='4'>No dishes found.</td></tr>";
+          echo "<tr class='empty-row'><td colspan='5'>No dishes found.</td></tr>";
         }
         ?>
       </tbody>
@@ -359,6 +444,64 @@ $edit_type    = $_GET['edit_type'] ?? '';
     </table>
     <?php endif; ?>
 
+  <?php endif; ?>
+
+  <?php if ($page === 'feedbacks'):
+    $fb_res = $conn->query("
+      SELECT rv.rid, rv.rating, rv.comment,
+             u.firstname, u.lastname, u.email,
+             b.bname, o.oid, o.oamount
+      FROM reviews rv
+      LEFT JOIN user u ON rv.uid = u.uid
+      LEFT JOIN branches b ON rv.bid = b.bid
+      LEFT JOIN orders o ON rv.oid = o.oid
+      ORDER BY rv.rid DESC
+    ");
+  ?>
+    <a href="portal2.php" class="back-link">&larr; Back</a>
+    <h2 class="section-title">Customer Feedbacks</h2>
+    <div class="section-divider"></div>
+    <?php
+      $fb_count = $fb_res ? $fb_res->num_rows : 0;
+      $fb_all = [];
+      if ($fb_res && $fb_count > 0) while($row=$fb_res->fetch_assoc()) $fb_all[]=$row;
+    ?>
+    <?php if ($fb_all): ?>
+    <div class="feedback-summary">
+      <?php
+        $total_rating = array_sum(array_column($fb_all,'rating'));
+        $avg_rating = $total_rating / count($fb_all);
+        $stars = str_repeat('&#9733;', round($avg_rating)) . str_repeat('&#9734;', 5-round($avg_rating));
+      ?>
+      <span>&#11088; Average Rating: <strong><?= number_format($avg_rating,1) ?>/5</strong> &nbsp;<?= $stars ?>&nbsp; (<?= $fb_count ?> reviews)</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Guest</th><th>Email</th><th>Branch</th><th>Order</th><th>Rating</th><th>Comment</th>
+        </tr>
+      </thead>
+      <tbody>
+        <?php foreach ($fb_all as $fb): ?>
+        <tr>
+          <td><?= (int)$fb['rid'] ?></td>
+          <td><?= htmlspecialchars(trim($fb['firstname'].' '.$fb['lastname'])) ?></td>
+          <td><?= htmlspecialchars($fb['email'] ?? '—') ?></td>
+          <td><?= htmlspecialchars($fb['bname'] ?? '—') ?></td>
+          <td><?= $fb['oid'] ? '#'.(int)$fb['oid'].' &mdash; &#8377;'.number_format((float)$fb['oamount'],0) : '—' ?></td>
+          <td>
+            <span class="star-rating">
+              <?php for($s=1;$s<=5;$s++) echo $s<=(int)$fb['rating'] ? '&#9733;' : '&#9734;'; ?>
+            </span>
+          </td>
+          <td><?= htmlspecialchars($fb['comment'] ?? '—') ?></td>
+        </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+    <?php else: ?>
+    <p style="color:var(--text-muted);font-style:italic;padding:24px 0;">No customer feedbacks yet.</p>
+    <?php endif; ?>
   <?php endif; ?>
 
   <?php if ($page === 'bookings'):
@@ -551,5 +694,18 @@ $edit_type    = $_GET['edit_type'] ?? '';
     <span class="copyright">&copy; 2026 Rasoi. All rights reserved.</span>
   </footer>
 
+<script>
+function toggleNewCat(sel) {
+  var custom = document.getElementById('cat_custom');
+  if (sel.value === '__new__') {
+    custom.style.display = 'block';
+    custom.required = true;
+  } else {
+    custom.style.display = 'none';
+    custom.required = false;
+    custom.value = '';
+  }
+}
+</script>
 </body>
 </html>

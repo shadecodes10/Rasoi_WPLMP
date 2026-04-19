@@ -1,4 +1,51 @@
-<?php session_start(); ?>
+<?php
+session_start();
+$conn = new mysqli("localhost", "root", "", "restaurant_db");
+if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
+
+// Fetch all dishes grouped by category
+$dishes_by_cat = [];
+$res = $conn->query("SELECT dname, dprice, dcategory, dtype FROM dishes ORDER BY dcategory, dname");
+if ($res && $res->num_rows > 0) {
+    while ($row = $res->fetch_assoc()) {
+        $cat = $row['dcategory'];
+        $dishes_by_cat[$cat][] = $row;
+    }
+}
+
+// Define tab → category mapping (dcategory values in DB)
+// We group categories into frontend tabs
+$tab_map = [
+    'drinks'     => ['Drinks', 'Beverages', 'Mocktails', 'Lassi', 'Mocktails & Coolers', 'Lassi & Chaas'],
+    'appetizers' => ['Appetizers', 'Starters', 'Tandoor Starters', 'Tawa & Snacks'],
+    'maincourse' => ['Main Course', 'Mains', "Sabzi's", 'Dal & Lentils', 'Rice & Biryani'],
+    'breads'     => ['Breads', 'From the Tandoor', 'Bread', 'Tandoor Breads'],
+    'dessert'    => ['Dessert', 'Desserts', 'Traditional Sweets', 'Ice Creams & Kulfi', 'Ice Creams'],
+];
+
+// Also gather any uncategorized into a fallback
+function getDishesForTab($dishes_by_cat, $categories) {
+    $result = [];
+    foreach($categories as $cat) {
+        if(isset($dishes_by_cat[$cat])) {
+            $result[$cat] = $dishes_by_cat[$cat];
+        }
+    }
+    return $result;
+}
+
+// Identify which DB categories haven't been matched by any tab
+$all_mapped = [];
+foreach($tab_map as $categories) {
+    $all_mapped = array_merge($all_mapped, $categories);
+}
+$extra_cats = [];
+foreach($dishes_by_cat as $cat => $items) {
+    if (!in_array($cat, $all_mapped)) {
+        $extra_cats[$cat] = $items;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -13,6 +60,7 @@
 .menu-tabs {
   display: flex; gap: 2px; margin-bottom: 40px;
   background: var(--cream-dark); padding: 4px; border-radius: 2px;
+  flex-wrap: wrap;
 }
 .tab-btn {
   flex: 1; background: transparent; border: none;
@@ -42,6 +90,7 @@
 .menu-note { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 28px; text-align: center; letter-spacing: 0.03em; }
 .order-cta { text-align: center; margin-top: 48px; padding: 32px; background: var(--cream-dark); }
 .order-cta p { font-size: 16px; color: var(--muted); margin-bottom: 20px; }
+.empty-tab { color: var(--muted); font-style: italic; padding: 24px 0; text-align: center; font-size: 15px; }
 </style>
 </head>
 <body>
@@ -77,102 +126,70 @@
     <div class="menu-wrap">
       <div class="menu-header"><h1>Menu</h1></div>
 
+      <?php
+      // Build tabs dynamically — only show tab if it has at least one dish
+      $active_tabs = [];
+      $tab_labels = [
+          'drinks'     => 'Drinks',
+          'appetizers' => 'Appetizers',
+          'maincourse' => 'Main Course',
+          'breads'     => 'Breads',
+          'dessert'    => 'Dessert',
+      ];
+      foreach($tab_map as $tab_id => $cats) {
+          foreach($cats as $cat) {
+              if(isset($dishes_by_cat[$cat]) && count($dishes_by_cat[$cat]) > 0) {
+                  $active_tabs[] = $tab_id;
+                  break;
+              }
+          }
+      }
+      // Add extra categories as their own tab (if any)
+      if(!empty($extra_cats)) $active_tabs[] = 'other';
+
+      $first_tab = $active_tabs[0] ?? 'drinks';
+      ?>
+
       <div class="menu-tabs">
-        <button class="tab-btn active" onclick="switchTab('drinks',this)">Drinks</button>
-        <button class="tab-btn" onclick="switchTab('appetizers',this)">Appetizers</button>
-        <button class="tab-btn" onclick="switchTab('maincourse',this)">Main Course</button>
-        <button class="tab-btn" onclick="switchTab('breads',this)">Breads</button>
-        <button class="tab-btn" onclick="switchTab('dessert',this)">Dessert</button>
+        <?php foreach($active_tabs as $tab_id): ?>
+          <button class="tab-btn <?= $tab_id === $first_tab ? 'active' : '' ?>"
+                  onclick="switchTab('<?= $tab_id ?>',this)">
+            <?= $tab_id === 'other' ? 'More' : htmlspecialchars($tab_labels[$tab_id] ?? ucfirst($tab_id)) ?>
+          </button>
+        <?php endforeach; ?>
       </div>
 
-      <!-- DRINKS -->
-      <div id="tab-drinks" class="menu-panel active">
-        <p class="menu-section-title">Mocktails &amp; Coolers</p>
-        <div class="menu-item"><div><div class="item-name">Iced Masala Chai</div><div class="item-desc">Cold brew chai with spiced syrup and milk</div></div></div>
-        <div class="menu-item"><div><div class="item-name">Rose Sharbat</div><div class="item-desc">Chilled rose water, basil seeds, and fresh lime</div></div></div>
-        <div class="menu-item"><div><div class="item-name">Aam Panna</div><div class="item-desc">Raw mango, roasted cumin, black salt</div></div></div>
-        <div class="menu-item"><div><div class="item-name">Jaljeera Cooler</div><div class="item-desc">Cumin-mint water with tamarind and ginger</div></div></div>
-        <div class="menu-item"><div><div class="item-name">Kokum Soda</div><div class="item-desc">Coastal cooler with kokum, jaggery, and sparkling water</div></div></div>
-        <div class="menu-item"><div><div class="item-name">Thandai</div><div class="item-desc">Milk blended with saffron, rose petals, and dry fruits</div></div></div>
-        <p class="menu-section-title">Lassi &amp; Chaas</p>
-        <div class="menu-item"><div><div class="item-name">Classic Sweet Lassi</div><div class="item-desc">Thick dahi, sugar, and a touch of cardamom</div></div></div>
-        <div class="menu-item"><div><div class="item-name">Mango Lassi</div><div class="item-desc">Alphonso mango purée with creamy yogurt</div></div></div>
-        <div class="menu-item"><div><div class="item-name">Salted Chaas</div><div class="item-desc">Spiced buttermilk with roasted cumin and mint</div></div></div>
-        <div class="menu-item"><div><div class="item-name">Masala Chaas</div><div class="item-desc">Ginger, green chilli, curry leaf buttermilk</div></div></div>
-        <p class="menu-note">* All beverages are served freshly prepared. No artificial flavours.</p>
+      <?php foreach($active_tabs as $tab_id):
+        $cats_for_tab = $tab_id === 'other' ? array_keys($extra_cats) : ($tab_map[$tab_id] ?? []);
+        $has_content = false;
+        // Check content
+        foreach($cats_for_tab as $cat) {
+            if(isset($dishes_by_cat[$cat]) && count($dishes_by_cat[$cat]) > 0) { $has_content = true; break; }
+        }
+      ?>
+      <div id="tab-<?= $tab_id ?>" class="menu-panel <?= $tab_id === $first_tab ? 'active' : '' ?>">
+        <?php if($has_content): ?>
+          <?php foreach($cats_for_tab as $cat):
+            $items = $dishes_by_cat[$cat] ?? [];
+            if(empty($items)) continue;
+          ?>
+            <p class="menu-section-title"><?= htmlspecialchars($cat) ?></p>
+            <?php foreach($items as $dish): ?>
+              <div class="menu-item">
+                <div>
+                  <div class="item-name"><?= htmlspecialchars($dish['dname']) ?></div>
+                </div>
+                <?php if ($dish['dprice'] > 0): ?>
+                  <div class="item-price">&#8377;<?= number_format((float)$dish['dprice'], 0) ?></div>
+                <?php endif; ?>
+              </div>
+            <?php endforeach; ?>
+          <?php endforeach; ?>
+        <?php else: ?>
+          <p class="empty-tab">No items available in this category yet.</p>
+        <?php endif; ?>
       </div>
-
-      <!-- APPETIZERS -->
-      <div id="tab-appetizers" class="menu-panel">
-        <p class="menu-section-title">Tandoor Starters</p>
-        <div class="menu-item"><div><div class="item-name">Paneer Kalimiri Tikka</div><div class="item-desc">Cottage cheese marinated in black pepper and cream</div></div><div class="item-price">₹299</div></div>
-        <div class="menu-item"><div><div class="item-name">Cheese Stuffed Mushroom Tikka</div><div class="item-desc">Tandoor-roasted mushroom with spiced cheese filling</div></div><div class="item-price">₹319</div></div>
-        <div class="menu-item"><div><div class="item-name">Soya Chaap</div><div class="item-desc">Slow-marinated soya chaap in smoky spices</div></div><div class="item-price">₹279</div></div>
-        <div class="menu-item"><div><div class="item-name">Tandoor Ki Peshkash</div><div class="item-desc">Chef's assorted tandoor platter for two</div></div><div class="item-price">₹499</div></div>
-        <div class="menu-item"><div><div class="item-name">Paneer Makhmali Tikka</div><div class="item-desc">Silken cottage cheese in malai and cashew marinade</div></div><div class="item-price">₹329</div></div>
-        <div class="menu-item"><div><div class="item-name">Paneer Tikka Peri Peri</div><div class="item-desc">Cottage cheese with peri peri spice and yogurt</div></div><div class="item-price">₹309</div></div>
-        <div class="menu-item"><div><div class="item-name">Paneer Tikka Pahadi</div><div class="item-desc">Himalayan herb-marinated cottage cheese</div></div><div class="item-price">₹309</div></div>
-        <p class="menu-section-title">Tawa &amp; Snacks</p>
-        <div class="menu-item"><div><div class="item-name">Cheese Corn Tikki</div><div class="item-desc">Crispy corn patties with melted cheese inside</div></div><div class="item-price">₹249</div></div>
-        <div class="menu-item"><div><div class="item-name">Papdi Paneer Shots</div><div class="item-desc">Layered crispy papdi with spiced paneer filling</div></div><div class="item-price">₹229</div></div>
-        <div class="menu-item"><div><div class="item-name">Bhatti Ke Aloo</div><div class="item-desc">Whole potatoes slow-roasted in coal-fired oven</div></div><div class="item-price">₹219</div></div>
-        <div class="menu-item"><div><div class="item-name">Rim Jhim Kebab</div><div class="item-desc">Soft lentil and herb kebabs with mint chutney</div></div><div class="item-price">₹259</div></div>
-        <div class="menu-item"><div><div class="item-name">Masalewale Mushroom</div><div class="item-desc">Button mushrooms tossed in whole spices and butter</div></div><div class="item-price">₹269</div></div>
-        <div class="menu-item"><div><div class="item-name">Multani Mushroom</div><div class="item-desc">Creamy Multani spice-coated mushroom bites</div></div><div class="item-price">₹279</div></div>
-        <div class="menu-item"><div><div class="item-name">Paneer Angara</div><div class="item-desc">Flame-kissed paneer cubes with smoked spices</div></div><div class="item-price">₹319</div></div>
-        <div class="menu-item"><div><div class="item-name">Bharwan Aloo</div><div class="item-desc">Stuffed potatoes with spiced dry fruit mix</div></div><div class="item-price">₹239</div></div>
-      </div>
-
-      <!-- MAIN COURSE -->
-      <div id="tab-maincourse" class="menu-panel">
-        <p class="menu-section-title">Sabzi's</p>
-        <div class="menu-item"><div><div class="item-name">Dal Makhani</div><div class="item-desc">Slow-cooked black lentils in butter and cream</div></div><div class="item-price">₹349</div></div>
-        <div class="menu-item"><div><div class="item-name">Adraki Chole</div><div class="item-desc">Ginger-scented Punjabi chickpea curry</div></div><div class="item-price">₹329</div></div>
-        <div class="menu-item"><div><div class="item-name">Bhindi Aamchuri</div><div class="item-desc">Crispy okra stir-fried with dried mango powder</div></div><div class="item-price">₹299</div></div>
-        <div class="menu-item"><div><div class="item-name">Sabzi Firangi</div><div class="item-desc">Mixed seasonal vegetables in a rich Mughlai gravy</div></div><div class="item-price">₹359</div></div>
-        <div class="menu-item"><div><div class="item-name">Veg Kolhapuri</div><div class="item-desc">Fiery Kolhapuri masala with farm vegetables</div></div><div class="item-price">₹349</div></div>
-        <div class="menu-item"><div><div class="item-name">Paneer Tufani</div><div class="item-desc">Cottage cheese in bold red-pepper tomato gravy</div></div><div class="item-price">₹379</div></div>
-        <div class="menu-item"><div><div class="item-name">Malai Kofta</div><div class="item-desc">Cream-soaked cottage cheese dumplings in mild gravy</div></div><div class="item-price">₹389</div></div>
-        <div class="menu-item"><div><div class="item-name">Palak Paneer</div><div class="item-desc">Cottage cheese in creamed spinach with whole spices</div></div><div class="item-price">₹369</div></div>
-        <div class="menu-item"><div><div class="item-name">Paneer Tikka Masala</div><div class="item-desc">Tandoor-charred paneer in smoky tomato masala</div></div><div class="item-price">₹389</div></div>
-        <div class="menu-item"><div><div class="item-name">Rasoi Special Curry</div><div class="item-desc">Chef's signature curry — changes with the season</div></div><div class="item-price">₹419</div></div>
-        <div class="menu-item"><div><div class="item-name">Dum Aloo</div><div class="item-desc">Baby potatoes slow-cooked in Kashmiri gravy</div></div><div class="item-price">₹339</div></div>
-        <p class="menu-section-title">Dal &amp; Lentils</p>
-        <div class="menu-item"><div><div class="item-name">Dal Tadka</div><div class="item-desc">Yellow lentils tempered with garlic and dried red chilli</div></div><div class="item-price">₹279</div></div>
-        <div class="menu-item"><div><div class="item-name">Panchmel Dal</div><div class="item-desc">Five-lentil blend from Rajasthani tradition</div></div><div class="item-price">₹299</div></div>
-        <div class="menu-item"><div><div class="item-name">Dal Bukhara</div><div class="item-desc">Black dal slow-simmered overnight with ginger</div></div><div class="item-price">₹369</div></div>
-        <p class="menu-section-title">Rice &amp; Biryani</p>
-        <div class="menu-item"><div><div class="item-name">Vegetable Dum Biryani</div><div class="item-desc">Fragrant basmati with saffron, rose water, and fried onion</div></div><div class="item-price">₹399</div></div>
-        <div class="menu-item"><div><div class="item-name">Paneer Biryani</div><div class="item-desc">Charred paneer layered in aromatic long-grain rice</div></div><div class="item-price">₹429</div></div>
-        <div class="menu-item"><div><div class="item-name">Jeera Rice</div><div class="item-desc">Cumin-tempered steamed basmati</div></div><div class="item-price">₹199</div></div>
-      </div>
-
-      <!-- BREADS -->
-      <div id="tab-breads" class="menu-panel">
-        <p class="menu-section-title">From the Tandoor</p>
-        <div class="menu-item"><div><div class="item-name">Butter Naan</div><div class="item-desc">Classic leavened bread brushed with cultured butter</div></div><div class="item-price">₹79</div></div>
-        <div class="menu-item"><div><div class="item-name">Garlic Naan</div><div class="item-desc">Naan topped with fresh garlic and coriander</div></div><div class="item-price">₹89</div></div>
-        <div class="menu-item"><div><div class="item-name">Peshwari Naan</div><div class="item-desc">Sweet naan stuffed with coconut, almond, and raisin</div></div><div class="item-price">₹109</div></div>
-        <div class="menu-item"><div><div class="item-name">Lacha Paratha</div><div class="item-desc">Flaky layered whole wheat bread from the tandoor</div></div><div class="item-price">₹89</div></div>
-        <div class="menu-item"><div><div class="item-name">Missi Roti</div><div class="item-desc">Spiced chickpea flour flatbread with ajwain</div></div><div class="item-price">₹79</div></div>
-        <div class="menu-item"><div><div class="item-name">Tandoori Roti</div><div class="item-desc">Whole wheat unleavened bread, charred perfectly</div></div><div class="item-price">₹59</div></div>
-        <div class="menu-item"><div><div class="item-name">Kulcha</div><div class="item-desc">Soft leavened bread, plain or with onion stuffing</div></div><div class="item-price">₹99</div></div>
-        <div class="menu-item"><div><div class="item-name">Stuffed Paratha</div><div class="item-desc">Choice of aloo, paneer, or mixed vegetable filling</div></div><div class="item-price">₹119</div></div>
-      </div>
-
-      <!-- DESSERT -->
-      <div id="tab-dessert" class="menu-panel">
-        <p class="menu-section-title">Traditional Sweets</p>
-        <div class="menu-item"><div><div class="item-name">Gulab Jamun</div><div class="item-desc">Soft milk-solid dumplings soaked in rose-cardamom syrup</div></div><div class="item-price">₹179</div></div>
-        <div class="menu-item"><div><div class="item-name">Rasmalai</div><div class="item-desc">Chilled cottage cheese patties in saffron-cardamom milk</div></div><div class="item-price">₹199</div></div>
-        <div class="menu-item"><div><div class="item-name">Gajar Ka Halwa</div><div class="item-desc">Slow-cooked carrot pudding with khoya and dry fruits</div></div><div class="item-price">₹189</div></div>
-        <div class="menu-item"><div><div class="item-name">Phirni</div><div class="item-desc">Set ground-rice pudding in a clay pot with rose petal</div></div><div class="item-price">₹169</div></div>
-        <div class="menu-item"><div><div class="item-name">Shahi Tukda</div><div class="item-desc">Fried bread soaked in rabdi with silver leaf and nuts</div></div><div class="item-price">₹209</div></div>
-        <p class="menu-section-title">Ice Creams &amp; Kulfi</p>
-        <div class="menu-item"><div><div class="item-name">Malai Kulfi</div><div class="item-desc">Dense frozen milk with cardamom and pistachios</div></div><div class="item-price">₹159</div></div>
-        <div class="menu-item"><div><div class="item-name">Mango Kulfi</div><div class="item-desc">Alphonso mango set kulfi with falooda</div></div><div class="item-price">₹179</div></div>
-        <div class="menu-item"><div><div class="item-name">Rose Kulfi</div><div class="item-desc">Rose-water kulfi on a stick with pistachio crumble</div></div><div class="item-price">₹169</div></div>
-      </div>
+      <?php endforeach; ?>
 
       <div class="order-cta">
         <p>Want to order from home? Browse our full menu with delivery.</p>
