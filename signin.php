@@ -6,6 +6,16 @@ $username   = "root";
 $password   = "";
 $dbname     = "restaurant_db";
 $signin_error = ""; 
+$signup_error = "";
+
+if (isset($_SESSION['signin_error'])) {
+  $signin_error = $_SESSION['signin_error'];
+  unset($_SESSION['signin_error']);
+}
+if (isset($_SESSION['signup_error'])) {
+  $signup_error = $_SESSION['signup_error'];
+  unset($_SESSION['signup_error']);
+}
 
 $conn = new mysqli($servername, $username, $password, $dbname);
 
@@ -21,17 +31,32 @@ if (isset($_POST['signup_btn'])) {
   $password  = $_POST['password'];
   $phone_no  = $_POST['phone_no']; 
 
+  $stmt_check = $conn->prepare("SELECT uid FROM USER WHERE email = ?");
+  $stmt_check->bind_param("s", $email);
+  $stmt_check->execute();
+  $res_check = $stmt_check->get_result();
+  
+  if ($res_check && $res_check->num_rows > 0) {
+    $_SESSION['signup_error'] = "Email already in use. Please sign in instead.";
+    $stmt_check->close();
+    header('Location: signin.php?tab=create');
+    exit;
+  }
+  $stmt_check->close();
+
   $sql = "INSERT INTO USER (firstname, lastname, email, password, phone_no)
           VALUES ('$firstname', '$lastname', '$email', '$password', '$phone_no')";
 
   if ($conn->query($sql) === TRUE) {
     $_SESSION['user_id']  = $conn->insert_id;
-    $_SESSION['username'] = $firstname;          
+    $_SESSION['username'] = $firstname;
     $conn->close();
     header('Location: index.php');
     exit;
   } else {
-    echo "Error: " . $conn->error;
+    $_SESSION['signup_error'] = "Error: " . $conn->error;
+    header('Location: signin.php?tab=create');
+    exit;
   }
 }
 
@@ -53,10 +78,14 @@ if (isset($_POST['signin_btn'])) {
       header('Location: index.php');
       exit;
     } else {
-      $signin_error = "Incorrect password. Please try again.";
+      $_SESSION['signin_error'] = "verification incorrect password";
+      header('Location: signin.php');
+      exit;
     }
   } else {
-    $signin_error = "No account found with that email.";
+    $_SESSION['signin_error'] = "No account found with that email.";
+    header('Location: signin.php');
+    exit;
   }
   $stmt->close();
 }
@@ -217,19 +246,23 @@ $conn->close();
     <a href="index.php" class="nav-logo">Rasoi</a>
 
     <ul class="nav-links">
-      <li><a href="menu.html">Menu</a></li>
-      <li><a href="order.html">Order Online</a></li>
-      <li><a href="about.html">About</a></li>
-      <li><a href="locations.html">Locations</a></li>
+      <li><a href="menu.php">Menu</a></li>
+      <li><a href="order.php">Order Online</a></li>
+      <li><a href="about.php">About</a></li>
+      <li><a href="locations.php">Locations</a></li>
     </ul>
 
     <div class="nav-right">
-      <a href="order.html" class="nav-cart-btn">
-        Cart <span id="cart-badge" class="cart-badge" style="display:none">0</span>
+      <?php $cartCount = array_sum($_SESSION['cart'] ?? []); ?>
+      <a href="cart.php" class="nav-cart-btn">
+        🛒 Cart
+        <?php if ($cartCount > 0): ?>
+          <span class="cart-badge"><?= $cartCount ?></span>
+        <?php endif; ?>
       </a>
       <?php if (isset($_SESSION['username'])): ?>
         <div class="nav-auth-user">
-          <span class="nav-welcome">Welcome, <?= htmlspecialchars($_SESSION['username']) ?></span>
+          <a href="profile.php" class="nav-welcome" style="text-decoration:none;"><?= htmlspecialchars($_SESSION['username']) ?></a>
           <a href="logout.php" class="nav-signout">Sign Out</a>
         </div>
       <?php else: ?>
@@ -265,15 +298,19 @@ $conn->close();
       </div>
 
       <div class="signin-right">
-
+        <?php
+          $req_tab = $_GET['tab'] ?? 'signin';
+          $sign_in_act = ($req_tab === 'signin') ? 'active' : '';
+          $sign_up_act = ($req_tab === 'create') ? 'active' : '';
+        ?>
         <div class="auth-tabs">
-          <button class="auth-tab active" onclick="switchAuth('signin',this)">Sign In</button>
-          <button class="auth-tab" onclick="switchAuth('create',this)">Create Account</button>
+          <button class="auth-tab <?= $sign_in_act ?>" onclick="switchAuth('signin',this)">Sign In</button>
+          <button class="auth-tab <?= $sign_up_act ?>" onclick="switchAuth('create',this)">Create Account</button>
         </div>
 
         <!-- SIGN IN FORM -->
         <form method="POST">
-          <div id="auth-signin" class="auth-panel active">
+          <div id="auth-signin" class="auth-panel <?= $sign_in_act ?>">
             <p class="auth-welcome">welcome back</p>
 
             <h2 class="auth-headline">Sign in to<br><em>Rasoi</em></h2>
@@ -300,10 +337,14 @@ $conn->close();
 
         <!-- CREATE ACCOUNT FORM -->
         <form method="POST">
-          <div id="auth-create" class="auth-panel">
+          <div id="auth-create" class="auth-panel <?= $sign_up_act ?>">
             <p class="auth-welcome">join us</p>
 
             <h2 class="auth-headline">Create your<br><em>Rasoi</em> account</h2>
+
+            <?php if ($signup_error): ?>
+              <p style="color:#B5451B; font-size:13px; margin-bottom:14px;"><?= htmlspecialchars($signup_error) ?></p>
+            <?php endif; ?>
 
             <div class="form-row">
               <div class="form-group">
@@ -343,13 +384,10 @@ $conn->close();
     <footer>
       <span class="footer-logo">Rasoi</span>
       <span class="footer-copy">© 2026 Rasoi. All rights reserved.</span>
-      <a href="locations.html" class="footer-contact">Contact</a>
+      <a href="locations.php" class="footer-contact">Contact</a>
     </footer>
 
   </div>
-
-  <script src="cart.js"></script>
-
   <script>
     function switchAuth(id, btn) {
       document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));

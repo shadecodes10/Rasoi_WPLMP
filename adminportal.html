@@ -600,25 +600,16 @@
 </div>
  
 <script>
-// ── DATA ──
-let users = [
-  { id:1, fname:'Arjun', lname:'Mehta', email:'arjun@example.com', phone:'+91 98201 11234', joined:'12 Jan 2026', status:'Active' },
-  { id:2, fname:'Priya', lname:'Sharma', email:'priya@example.com', phone:'+91 97311 55678', joined:'03 Feb 2026', status:'Active' },
-  { id:3, fname:'Rahul', lname:'Gupta', email:'rahul@example.com', phone:'+91 90001 22334', joined:'18 Feb 2026', status:'Inactive' },
-  { id:4, fname:'Sneha', lname:'Nair', email:'sneha@example.com', phone:'+91 98764 44556', joined:'01 Mar 2026', status:'Active' },
-  { id:5, fname:'Vikram', lname:'Iyer', email:'vikram@example.com', phone:'+91 91234 77890', joined:'14 Mar 2026', status:'Active' },
-];
- 
 let dishes = [
-  { id:1, name:'Dal Makhani', desc:'Slow-cooked lentils in rich tomato gravy', category:'Main Course', price:320, type:'Veg', status:'Available', emoji:'🫕' },
-  { id:2, name:'Butter Chicken', desc:'Creamy tomato-based chicken curry', category:'Main Course', price:420, type:'Non-Veg', status:'Available', emoji:'🍗' },
-  { id:3, name:'Paneer Tikka', desc:'Chargrilled cottage cheese in spiced marinade', category:'Appetizer', price:280, type:'Veg', status:'Available', emoji:'🧀' },
-  { id:4, name:'Biryani', desc:'Fragrant basmati rice with choice of protein', category:'Rice', price:360, type:'Non-Veg', status:'Available', emoji:'🍚' },
-  { id:5, name:'Gulab Jamun', desc:'Soft milk dumplings in rose syrup', category:'Dessert', price:120, type:'Veg', status:'Available', emoji:'🍮' },
-  { id:6, name:'Garlic Naan', desc:'Leavened bread with garlic butter', category:'Bread', price:80, type:'Veg', status:'Unavailable', emoji:'🫓' },
+  { id:1, name:'Dal Makhani',   desc:'Slow-cooked lentils in rich tomato gravy',          category:'Main Course', price:320, type:'Veg',     status:'Available',   emoji:'🫕' },
+  { id:2, name:'Butter Chicken',desc:'Creamy tomato-based chicken curry',                  category:'Main Course', price:420, type:'Non-Veg', status:'Available',   emoji:'🍗' },
+  { id:3, name:'Paneer Tikka',  desc:'Chargrilled cottage cheese in spiced marinade',     category:'Appetizer',   price:280, type:'Veg',     status:'Available',   emoji:'🧀' },
+  { id:4, name:'Biryani',       desc:'Fragrant basmati rice with choice of protein',      category:'Rice',        price:360, type:'Non-Veg', status:'Available',   emoji:'🍚' },
+  { id:5, name:'Gulab Jamun',   desc:'Soft milk dumplings in rose syrup',                 category:'Dessert',     price:120, type:'Veg',     status:'Available',   emoji:'🍮' },
+  { id:6, name:'Garlic Naan',   desc:'Leavened bread with garlic butter',                 category:'Bread',       price:80,  type:'Veg',     status:'Unavailable', emoji:'🫓' },
 ];
- 
-let nextUserId = 6, nextDishId = 7;
+let users = [];
+let nextUserId = 1, nextDishId = 7;
  
 // ── LOGIN ──
 function doLogin() {

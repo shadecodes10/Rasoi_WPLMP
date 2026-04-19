@@ -64,13 +64,13 @@
 <nav>
   <a href="index.php" class="nav-logo">Rasoi</a>
   <ul class="nav-links">
-    <li><a href="menu.html">Menu</a></li>
-    <li><a href="order.html">Order Online</a></li>
-    <li><a href="about.html">About</a></li>
-    <li><a href="locations.html">Locations</a></li>
+    <li><a href="menu.php">Menu</a></li>
+    <li><a href="order.php">Order Online</a></li>
+    <li><a href="about.php">About</a></li>
+    <li><a href="locations.php">Locations</a></li>
   </ul>
   <div class="nav-right">
-    <a href="order.html" class="nav-cart-btn">Cart <span class="cart-badge" id="cart-badge" style="display:none">0</span></a>
+    <a href="order.php" class="nav-cart-btn">Cart <span class="cart-badge" id="cart-badge" style="display:none">0</span></a>
     <?php if (isset($_SESSION['username'])): ?>
       <div class="nav-auth-user">
         <span class="nav-welcome">Welcome, <?= htmlspecialchars($_SESSION['username']) ?></span>
@@ -95,7 +95,7 @@
           <?php else: ?>
             <a href="signin.php" class="btn-primary" onclick="alert('Please sign in to reserve a table.')" style="cursor:pointer">Reserve a Table</a>
           <?php endif; ?>
-          <a href="menu.html" class="btn-outline">Explore Menu</a>
+          <a href="menu.php" class="btn-outline">Explore Menu</a>
         </div>
       </div>
     </section>
@@ -118,11 +118,11 @@
       <h2>India on Your Plate</h2>
       <p>Five distinct culinary traditions, each authentic to its origin.</p>
       <div class="cuisines-grid">
-        <a href="menu.html" class="cuisine-card"><div class="cuisine-card-region">North India</div><div class="cuisine-card-name">Punjabi & Mughlai</div><div class="cuisine-card-desc">Tandoor, dal makhani, biryani, butter naan</div></a>
-        <a href="menu.html" class="cuisine-card"><div class="cuisine-card-region">South India</div><div class="cuisine-card-name">Kerala & Chettinad</div><div class="cuisine-card-desc">Coconut curries, sambar, rasam, appam</div></a>
-        <a href="menu.html" class="cuisine-card"><div class="cuisine-card-region">West India</div><div class="cuisine-card-name">Rajasthani & Gujarati</div><div class="cuisine-card-desc">Dal baati, dhokla, tawa sabzi, churma</div></a>
-        <a href="menu.html" class="cuisine-card"><div class="cuisine-card-region">East India</div><div class="cuisine-card-name">Bengali & Odia</div><div class="cuisine-card-desc">Mustard gravies, mishti doi, kosha mangsho</div></a>
-        <a href="menu.html" class="cuisine-card"><div class="cuisine-card-region">Central India</div><div class="cuisine-card-name">Awadhi & Bundelkhandi</div><div class="cuisine-card-desc">Slow dum, galouti, korma, sheermal</div></a>
+        <a href="menu.php" class="cuisine-card"><div class="cuisine-card-region">North India</div><div class="cuisine-card-name">Punjabi & Mughlai</div><div class="cuisine-card-desc">Tandoor, dal makhani, biryani, butter naan</div></a>
+        <a href="menu.php" class="cuisine-card"><div class="cuisine-card-region">South India</div><div class="cuisine-card-name">Kerala & Chettinad</div><div class="cuisine-card-desc">Coconut curries, sambar, rasam, appam</div></a>
+        <a href="menu.php" class="cuisine-card"><div class="cuisine-card-region">West India</div><div class="cuisine-card-name">Rajasthani & Gujarati</div><div class="cuisine-card-desc">Dal baati, dhokla, tawa sabzi, churma</div></a>
+        <a href="menu.php" class="cuisine-card"><div class="cuisine-card-region">East India</div><div class="cuisine-card-name">Bengali & Odia</div><div class="cuisine-card-desc">Mustard gravies, mishti doi, kosha mangsho</div></a>
+        <a href="menu.php" class="cuisine-card"><div class="cuisine-card-region">Central India</div><div class="cuisine-card-name">Awadhi & Bundelkhandi</div><div class="cuisine-card-desc">Slow dum, galouti, korma, sheermal</div></a>
       </div>
     </div>
   </div>
@@ -130,7 +130,7 @@
   <footer>
     <span class="footer-logo">Rasoi</span>
     <span class="footer-copy">© 2026 Rasoi. All rights reserved.</span>
-    <a href="locations.html" class="footer-contact">Contact</a>
+    <a href="locations.php" class="footer-contact">Contact</a>
   </footer>
 </div>
 <script src="cart.js"></script>
