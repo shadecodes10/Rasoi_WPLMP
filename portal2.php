@@ -1,4 +1,172 @@
 <?php
+session_start();
+
+// ── Admin Login Gate ────────────────────────────────────────────
+define('ADMIN_EMAIL', 'admin@rasoi.com');
+define('ADMIN_PASS',  '1234');
+
+$login_error = '';
+
+if (isset($_POST['admin_login'])) {
+    $in_email = trim($_POST['admin_email'] ?? '');
+    $in_pass  = $_POST['admin_pass'] ?? '';
+    if ($in_email === ADMIN_EMAIL && $in_pass === ADMIN_PASS) {
+        $_SESSION['admin_logged_in'] = true;
+    } else {
+        $login_error = 'Invalid email or password.';
+    }
+}
+
+if (isset($_GET['admin_logout'])) {
+    unset($_SESSION['admin_logged_in']);
+    header('Location: portal2.php');
+    exit;
+}
+
+if (empty($_SESSION['admin_logged_in'])) {
+    // Show login page and stop
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rasoi — Admin Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f0ebe0;
+      font-family: 'Jost', sans-serif;
+      color: #2c1f14;
+    }
+    .login-wrap {
+      width: 100%;
+      max-width: 420px;
+      padding: 20px;
+    }
+    .login-card {
+      background: #fff;
+      border-radius: 6px;
+      box-shadow: 0 8px 40px rgba(44,31,20,0.13);
+      padding: 48px 44px 40px;
+      text-align: center;
+    }
+    .login-logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 2.4rem;
+      font-weight: 600;
+      color: #8b3a1e;
+      letter-spacing: 0.06em;
+    }
+    .login-sub {
+      font-size: 0.78rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #7a6a5a;
+      margin-top: 4px;
+      margin-bottom: 32px;
+    }
+    .login-divider {
+      width: 48px;
+      height: 1px;
+      background: #b05030;
+      margin: 0 auto 30px;
+      opacity: 0.45;
+    }
+    .field {
+      text-align: left;
+      margin-bottom: 18px;
+    }
+    .field label {
+      display: block;
+      font-size: 0.68rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #7a6a5a;
+      margin-bottom: 6px;
+    }
+    .field input {
+      width: 100%;
+      padding: 11px 14px;
+      font-family: 'Jost', sans-serif;
+      font-size: 0.9rem;
+      border: 1px solid #cec8bc;
+      border-radius: 3px;
+      background: #faf8f4;
+      color: #2c1f14;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .field input:focus {
+      border-color: #8b3a1e;
+      box-shadow: 0 0 0 3px rgba(139,58,30,0.1);
+    }
+    .login-btn {
+      width: 100%;
+      padding: 12px;
+      background: #8b3a1e;
+      color: #fff;
+      font-family: 'Jost', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s, transform 0.15s;
+    }
+    .login-btn:hover { background: #b05030; transform: translateY(-1px); }
+    .login-btn:active { transform: translateY(0); }
+    .login-error {
+      background: #fdecea;
+      color: #b52a1e;
+      font-size: 0.82rem;
+      border-radius: 3px;
+      padding: 10px 14px;
+      margin-bottom: 18px;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-logo">Rasoi</div>
+      <div class="login-sub">Admin Portal</div>
+      <div class="login-divider"></div>
+      <?php if ($login_error): ?>
+      <div class="login-error">&#9888; <?= htmlspecialchars($login_error) ?></div>
+      <?php endif; ?>
+      <form method="POST" action="portal2.php">
+        <div class="field">
+          <label for="admin_email">Email Address</label>
+          <input type="email" id="admin_email" name="admin_email"
+                 placeholder="admin@rasoi.com" required
+                 value="<?= htmlspecialchars($_POST['admin_email'] ?? '') ?>">
+        </div>
+        <div class="field">
+          <label for="admin_pass">Password</label>
+          <input type="password" id="admin_pass" name="admin_pass"
+                 placeholder="••••••••" required>
+        </div>
+        <button type="submit" name="admin_login" class="login-btn">Sign In</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>
+<?php
+    exit;
+}
+// ── End Login Gate ───────────────────────────────────────────────
+
 $conn = new mysqli("localhost", "root", "", "restaurant_db");
 if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
@@ -207,6 +375,14 @@ if ($cat_res) while ($cr = $cat_res->fetch_row()) $dish_categories[] = $cr[0];
     <h1>Rasoi</h1>
     <p>Admin Portal</p>
     <div class="divider"></div>
+    <div style="margin-top:12px;">
+      <a href="portal2.php?admin_logout=1"
+         style="font-size:0.72rem;letter-spacing:0.14em;text-transform:uppercase;
+                color:#7a6a5a;text-decoration:none;transition:color 0.2s;"
+         onmouseover="this.style.color='#8b3a1e'" onmouseout="this.style.color='#7a6a5a'">
+        &#128274; Logout
+      </a>
+    </div>
   </header>
 
   <main>
